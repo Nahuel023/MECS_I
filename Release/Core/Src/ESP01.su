@@ -1,0 +1,17 @@
+../Core/Src/ESP01.c:782:13:ESP01StrToBufTX	12	static
+../Core/Src/ESP01.c:790:13:ESP01ByteToBufTX	8	static
+../Core/Src/ESP01.c:129:6:ESP01_SetWIFI	16	static
+../Core/Src/ESP01.c:146:15:ESP01_StartUDP	16	static
+../Core/Src/ESP01.c:172:15:ESP01_StartTCP	16	static
+../Core/Src/ESP01.c:199:6:ESP01_CloseUDPTCP	0	static
+../Core/Src/ESP01.c:206:15:ESP01_StateWIFI	0	static
+../Core/Src/ESP01.c:216:7:ESP01_GetLocalIP	0	static
+../Core/Src/ESP01.c:224:15:ESP01_StateUDPTCP	0	static
+../Core/Src/ESP01.c:235:6:ESP01_WriteRX	8	static
+../Core/Src/ESP01.c:243:15:ESP01_Send	48	static
+../Core/Src/ESP01.c:291:6:ESP01_Init	12	static
+../Core/Src/ESP01.c:305:6:ESP01_Timeout10ms	0	static
+../Core/Src/ESP01.c:319:6:ESP01_Task	40	static
+../Core/Src/ESP01.c:330:6:ESP01_AttachChangeState	0	static
+../Core/Src/ESP01.c:334:6:ESP01_AttachDebugStr	0	static
+../Core/Src/ESP01.c:338:5:ESP01_IsHDRRST	0	static

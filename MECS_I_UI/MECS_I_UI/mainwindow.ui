@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1006</width>
+    <height>658</height>
+   </rect>
+  </property>
+  <property name="font">
+   <font>
+    <pointsize>9</pointsize>
+    <bold>false</bold>
+   </font>
+  </property>
+  <property name="windowTitle">
+   <string>MECS I - PROYECTO FINAL</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="MECS_I_UI.qrc">
+    <normaloff>:/arc-reactor-png.png</normaloff>:/arc-reactor-png.png</iconset>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#centralwidget {
+    background-color: #CECFC9;
+}
+
+QMainWindow {
+	color:#0A3143;
+    background-color: #276E90; 
+    border: 2px solid #EFEFEF; 
+    border-radius: 10px; 
+}
+
+QMenuBar {
+	color:#0A3143;
+    background-color: #276E90;
+    border: 1px solid #EFEFEF;
+}
+
+QMenu
+{
+background-color: #276E90;
+color:#EFEFEF;
+font-style:bold;
+}
+
+QGroupBox{
+	color:#0A3143;
+ 	border: 2px solid #276E90; 
+	border-radius: 10px; 
+	margin-top: 5ex; 
+}
+
+QGroupBox::title {
+ 	border: 3px solid #CECFC9; 
+    subcontrol-origin: margin;
+    subcontrol-position: top center; 
+}
+
+QPushButton
+{
+color:#0A3143;
+background-color: #276E90;
+border: 1px solid #EFEFEF;
+border-width: 2px;
+border-radius: 10px;
+height:25px;
+}
+
+QPushButton:hover { background-color: #EFEFEF; }
+
+QLCDNumber{
+	color:#0A3143;
+	background-color: #CECFC9;
+	border: 2px solid #EFEFEF;
+	border-radius: 10px; 
+}
+
+QLabel
+{
+color:#0A3143;
+background-color: #EFEFEF;
+border-radius: 10px;
+padding: 2px;
+}
+
+QTextEdit {
+ border: 2px solid #EFEFEF;
+ border-radius: 10px;
+ background-color: rgba(0,0,0,0);
+ }
+
+QLineEdit{
+	color:#0A3143;
+	background-color: #EFEFEF;
+	border: 1px solid #EFEFEF;
+	border-width: 2px;
+	border-radius: 8px;
+}
+
+QPlainTextEdit{
+	color:#0A3143;
+	background-color: #EFEFEF;
+	border: 1px solid #EFEFEF;
+	border-width: 2px;
+	border-radius: 8px;
+}
+
+QTextEdit#textEdit_RAW{
+	font-family: &quot;Verdana&quot;;
+	font-size: 12px ;
+	font-style: bold;
+	padding:5px;
+   color:#0A3143;
+}
+
+QTextEdit#textEdit_PROCCES{
+    font-family: &quot;Verdana&quot;;
+	font-size: 12px ;
+	font-style: bold;
+	padding:5px;
+   color:#0A3143;
+}
+
+QTabWidget::pane { 
+    border-top: 2px solid #EFEFEF; 
+    position: absolute; 
+    top: -0.5em; 
+}
+
+QTabWidget::tab-bar {
+    alignment: center; 
+}
+
+QTabBar::tab {
+    background-color: #276E90; 
+    border: 1px solid #EFEFEF; 
+    border-bottom-color: #EFEFEF; 
+    border-top-left-radius: 3px; 
+    border-top-right-radius: 3px; 
+	border-bottom-left-radius: 3px; 
+    border-bottom-right-radius: 3px; 
+    min-width: 8ex; 
+    padding: 2px; 
+}
+
+QTabBar::tab:selected, QTabBar::tab:hover {
+    background-color: #EFEFEF; 
+}
+
+QTabBar::tab:selected {
+    border-color: #EFEFEF; 
+    border-bottom-color: #276E90; 
+}
+
+QComboBox {
+	color:#0A3143;
+	background-color: #276E90;
+    border: 1px solid #EFEFEF;
+	border-width: 2px;
+	border-radius: 10px;
+	height:25px;
+}
+
+QComboBox:!editable, QComboBox::drop-down:editable {
+     border-color: #EFEFEF; 
+}
+
+QComboBox:!editable:on, QComboBox::drop-down:editable:on {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #D3D3D3, stop: 0.4 #D8D8D8,
+                                stop: 0.5 #DDDDDD, stop: 1.0 #E1E1E1); 
+}
+
+QComboBox:on { 
+    padding-top: 3px; 
+    padding-left: 4px; 
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding; 
+    subcontrol-position: top right; 
+    width: 15px; 
+
+    border-left-width: 1px; 
+    border-left-color: #276E90; 
+    border-left-style: solid; 
+    border-top-right-radius: 3px; 
+    border-bottom-right-radius: 3px; 
+}
+
+QComboBox::down-arrow:on { 
+    top: 1px; 
+    left: 1px; 
+}
+
+QComboBox::down-arrow {
+   image: url(:/arrowdown.png);
+}
+
+QComboBox QAbstractItemView {
+    border: 2px solid #276E90;
+    selection-background-color: lightgray;
+	border-radius: 5px;
+}
+
+QDoubleSpinBox {
+    color:#0A3143;
+	background-color: #EFEFEF;
+}
+
+QSpinBox {
+    color:#0A3143;
+	background-color: #EFEFEF;
+}
+
+</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <layout class="QGridLayout" name="gridLayout_5">
+    <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout_5" stretch="0,1">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_33" stretch="0,1,1">
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Comunicacion</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="0">
+            <layout class="QVBoxLayout" name="verticalLayout">
+             <item>
+              <widget class="QComboBox" name="comboBox_CMD"/>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout">
+               <item>
+                <widget class="QPushButton" name="pushButton_SEND">
+                 <property name="text">
+                  <string>Send CMD</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_ALIVE">
+                 <property name="text">
+                  <string>ALIVE</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_UDP">
+                 <property name="text">
+                  <string>Send UDP</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QLabel" name="label_9">
+                 <property name="text">
+                  <string>local PORT:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_LOCALPORT">
+                 <property name="tabletTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="text">
+                  <string>30010</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_OPENUDP">
+                 <property name="text">
+                  <string>Open UDP</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <item>
+                <widget class="QLabel" name="label_7">
+                 <property name="text">
+                  <string>device IP :</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_IP_REMOTA"/>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_9">
+               <item>
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>device PORT:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_DEVICEPORT">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="title">
+           <string>Estado y control de modos</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_3"/>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>Seteo del control</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_2"/>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>1</number>
+        </property>
+        <widget class="QWidget" name="tab">
+         <attribute name="title">
+          <string>Mapeo</string>
+         </attribute>
+        </widget>
+        <widget class="QWidget" name="tab_3">
+         <attribute name="title">
+          <string>Graficas</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="0" column="0">
+           <widget class="QWidget" name="widgetAccel" native="true"/>
+          </item>
+          <item row="0" column="1">
+           <widget class="QWidget" name="widgetGyro" native="true"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="Debugger">
+         <attribute name="title">
+          <string>Debugger</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout_8">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_23">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_21">
+                <item>
+                 <spacer name="horizontalSpacer_2">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="lineEdit_IP_REMOTA_2">
+                  <property name="text">
+                   <string>DATO SIN PROCESAR</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_3">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_22">
+                <item>
+                 <spacer name="horizontalSpacer_4">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="lineEdit_IP_REMOTA_4">
+                  <property name="text">
+                   <string>DATO PROCESADO</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_5">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_19">
+              <item>
+               <widget class="QTextEdit" name="textEdit_RAW">
+                <property name="font">
+                 <font>
+                  <family>Verdana</family>
+                  <pointsize>-1</pointsize>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="html">
+                 <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Verdana'; font-size:12px; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:9pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QTextEdit" name="textEdit_PROCCES">
+                <property name="font">
+                 <font>
+                  <family>Verdana</family>
+                  <pointsize>-1</pointsize>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="html">
+                 <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+li.unchecked::marker { content: &quot;\2610&quot;; }
+li.checked::marker { content: &quot;\2612&quot;; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Verdana'; font-size:12px; font-weight:700; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:9pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_20">
+              <item>
+               <widget class="QPushButton" name="pushButtonClearDebugger">
+                <property name="text">
+                 <string>CLEAR DEBUGGER</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>850</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1006</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuDevice">
+    <property name="title">
+     <string>Device</string>
+    </property>
+    <addaction name="actionScanPorts"/>
+    <addaction name="actionConnect_Device"/>
+    <addaction name="actionDisconnect_Device"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <addaction name="menuDevice"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionScanPorts">
+   <property name="text">
+    <string>Scan Ports</string>
+   </property>
+  </action>
+  <action name="actionConnect_Device">
+   <property name="text">
+    <string>Connect Device</string>
+   </property>
+  </action>
+  <action name="actionDisconnect_Device">
+   <property name="text">
+    <string>Disconnect Device</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="MECS_I_UI.qrc"/>
+ </resources>
+ <connections/>
+</ui>
