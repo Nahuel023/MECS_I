@@ -81,22 +81,21 @@ uint8_t bufAUX_Tx[256];
 _sESP01Handle ESP01Manager;
 //Configuracion de valores para conexion UDP
 // FACULTAD
-/*
+
 const char SSID[]= "FCAL-Personal";
 const char PASSWORD[]= "fcal-uner+2019";
 const char RemoteIP[]="172.22.243.121";
 uint16_t RemotePORT = 30010;
 uint16_t LocalPORT = 30001;
-*/
-char strAux[16];
-//CASA
 
+//CASA
+/*
 const char SSID[]= "ANM2";
 const char PASSWORD[]= "anm157523";
 const char RemoteIP[]="192.168.0.14";
 uint16_t RemotePORT = 30010;
 uint16_t LocalPORT = 30001;
-
+*/
 /* COMUNICACION CODE EDN PV */
 
 
@@ -116,7 +115,10 @@ uint32_t elapsedTicks;
 uint32_t elapsedTime_us;
 
 //DS18B20
-_sOWConfig myOWConfiguration;
+_sOWHandle ow0;
+_sDS18B20Handle ds18b20_0;
+
+int16_t tempDS18B20;
 /* MANIPULACION DE DATOS Y BANDERAS CODE END PV */
 
 /* HEARTBEAT CODE BEGIN PV */
@@ -508,12 +510,12 @@ void On5s(){	//ticker que indica cuando paso 5s
 	CalcAndPutCksOnTx(&txUSART);
 
 	PutHeaderOnTx(&txUSART, 0xA1, 3);
-	w.i16[0]= lastTemp;
+	w.i16[0]= tempDS18B20;
 	PutByteOnTx(&txUSART, w.u8[0]);
 	PutByteOnTx(&txUSART, w.u8[1]);
 	CalcAndPutCksOnTx(&txUSART);
 
-	w.i16[0]= lastTemp;
+	w.i16[0]= tempDS18B20;
 	PutHeaderOnTx(&txUSB, 0xA1, 3);
 	PutByteOnTx(&txUSB, w.u8[0]);
 	PutByteOnTx(&txUSB, w.u8[1]);
@@ -531,10 +533,7 @@ void On2s(){
 	PutByteOnTx(&txUSB, w.u8[3]);
 	CalcAndPutCksOnTx(&txUSB);
 
-	DS18B20_StartReadTemp();
-	PutHeaderOnTx(&txUSB, 0xF1, 16);
-	PutStrOnTx(&txUSB, "TSTART        ");
-	CalcAndPutCksOnTx(&txUSB);
+	DS18B20_StartReadTemp(&ds18b20_0);
 
 }
 
@@ -635,6 +634,25 @@ void GetElapsedTime(void)
 
 }
 
+static inline int delayBlocking(int time_us){
+	uint32_t lastCount, currentCount, auSecondsAux;
+
+	time_us *= (HAL_RCC_GetHCLKFreq()/1000000);
+	lastCount = SysTick->VAL;
+
+	while (time_us> 0){
+		currentCount = SysTick->VAL;
+		auSecondsAux = lastCount - currentCount;
+
+		if(auSecondsAux > SysTick->LOAD)
+			auSecondsAux += (SysTick->LOAD+1);
+		time_us -= auSecondsAux;
+		lastCount = currentCount;
+	}
+
+	return 1;
+}
+
 
 
 /* USER CODE END 0 */
@@ -722,13 +740,15 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   //DS18B20
-  myOWConfiguration.DELAYus = &delay_us;
-  myOWConfiguration.SETPinInput = &OneWireSetPinInput;
-  myOWConfiguration.SETPinOutput = &OneWireSerPinOutput;
-  myOWConfiguration.ReadPinBit = &OneWireReadPin;
-  myOWConfiguration.WritePinBit = &OneWireWritePin;
+  ow0.DELAYus = &delayBlocking;
+  ow0.SETPinInput = &OneWireSetPinInput;
+  ow0.SETPinOutput = &OneWireSerPinOutput;
+  ow0.ReadPinBit = &OneWireReadPin;
+  ow0.WritePinBit = &OneWireWritePin;
 
-  DS18B20_Init(&myOWConfiguration);
+  ds18b20_0.OW = &ow0;
+
+  DS18B20_Init(&ds18b20_0, NULL);
 
 
   //Inicializacion de DELAYNOBLOKING
@@ -765,7 +785,7 @@ int main(void)
 	  //getElapsedTime_us();
 	  GetElapsedTime();
 	  ESP01_Task();
-	  DS18B20_Task(elapsedTime_us);
+	  DS18B20_Task(&ds18b20_0, elapsedTime_us);
 
 	  if(IS10MS){
 		  IS10MS = 0;
@@ -808,7 +828,16 @@ int main(void)
 		  }
 	  }*/
 
-	  w.i8[0] = DS18B20_Status();
+	  //DS18B20_Task (&ds18020_0, currentus);
+	  if(DS18B20_Status(&ds18b20_0)==DS18B20_ST_TEMPOK) {
+		  tempDS18B20 = DS18B20_ReadLastTemp(&ds18b20_0);
+
+	  if(DS18B20_Status(&ds18b20_0) == DS18B20_ST_TEMPCRCERROR){
+
+			  tempDS18B20 = DS18B20_ReadLastTemp (&ds18b20_0);
+	  }
+
+	 /* w.i8[0] = DS18B20_Status(&ds18b20_0);
 	  if(w.i8[0] == DS18B20TEMPREADY || w.i8[0] == DS18B20TEMPERROR){
 		  if(w.i8[0] == DS18B20TEMPERROR){
 			  countERRORS++;
@@ -829,8 +858,8 @@ int main(void)
 			CalcAndPutCksOnTx(&txUSB);
 			  countERRORS = 0;
 		  }
-	  }
-  }
+	  }*/
+  }}
   /* USER CODE END 3 */
 }
 

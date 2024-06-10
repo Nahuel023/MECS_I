@@ -34,13 +34,33 @@ typedef enum{
 #define ONEWIREREADBYTEREADY    4
 
 
-typedef struct ONEWireConfiguration{
+typedef struct{
     void (*SETPinInput)(void);              /*<Pointer to a function that sets a pin as input*/
     void (*SETPinOutput)(void);             /*<Pointer to a function that sets a pin as output*/
     void (*WritePinBit)(uint8_t value);     /*<Pointer to a function that write a pin value*/
     uint8_t (*ReadPinBit)(void);            /*<Pointer to a function that read a pin value*/
     int (*DELAYus)(int usDelay);            /*<Pointer to a function that count 1 us*/
-}_sOWConfig;
+
+    struct {								/*<Internal USE. NOT modify*/
+        uint8_t     	byteValue;
+        uint8_t     	bitIndex;
+        uint32_t    	usLastTime;
+        uint32_t    	usWaitFor;
+        _eONEWIREStatus status;
+        union{
+        	struct{
+            	uint8_t isPresent:		1;
+            	uint8_t bitValue: 		1;
+            	uint8_t setCurrentus:	1;
+            	uint8_t padding:		5;
+        	} bit;
+        	uint8_t bye;
+        } flags;
+       uint8_t  		stateTask;
+    } taskData;
+}_sOWHandle;
+
+
 
 /* Provide C++ Compatibility */
 #ifdef __cplusplus
@@ -52,14 +72,14 @@ extern "C" {
  * Initialize the ONEWire bus. This function must be called first.
  * @param [in] aOW: Struct that define a ONEWire Bus
  */
-void ONEWire_Init(_sOWConfig *aOW);
+void ONEWire_Init(_sOWHandle *aOW);
 
 /**
  * @brief ONEWireReset
  * Reset ONEWire bus.
  * @return
  */
-uint8_t ONEWireReset(void);
+_eONEWIREStatus ONEWireReset(_sOWHandle *aOW);
 
 /**
  * @brief ONEWireWriteBit
@@ -67,7 +87,7 @@ uint8_t ONEWireReset(void);
  * @param [in] bitValue: bit value to write.
  * @return
  */
-uint8_t ONEWireWriteBit(uint8_t bitValue);
+_eONEWIREStatus ONEWireWriteBit(_sOWHandle *aOW, uint8_t bitValue);
 
 /**
  * @brief ONEWireReadBit
@@ -75,7 +95,7 @@ uint8_t ONEWireWriteBit(uint8_t bitValue);
  * @param [out] bitValue: address where the bit read is saved.
  * @return
  */
-uint8_t ONEWireReadBit(uint8_t *bitValue);
+_eONEWIREStatus ONEWireReadBit(_sOWHandle *aOW, uint8_t *bitValue);
 
 /**
  * @brief ONEWireReadByte
@@ -83,7 +103,7 @@ uint8_t ONEWireReadBit(uint8_t *bitValue);
  * @param [out] byte: address where the byte read is saved.
  * @return
  */
-uint8_t ONEWireReadByte(uint8_t *byte);
+_eONEWIREStatus ONEWireReadByte(_sOWHandle *aOW, uint8_t *byte);
 
 /**
  * @brief ONEWireWriteByte
@@ -91,19 +111,19 @@ uint8_t ONEWireReadByte(uint8_t *byte);
  * @param [in] byte: byte to wire.
  * @return
  */
-uint8_t ONEWireWriteByte(uint8_t byte);
+_eONEWIREStatus ONEWireWriteByte(_sOWHandle *aOW, uint8_t byte);
 
 /**
  * @brief ONEWireIsPresent
  * @return
  */
-uint8_t ONEWireIsPresent();
+uint8_t ONEWireIsPresent(_sOWHandle *aOW);
 
 /**
  * @brief ONEWireGetCurrentPinValue
  * @return
  */
-uint8_t ONEWireGetCurrentPinValue(void);
+uint8_t ONEWireGetCurrentPinValue(_sOWHandle *aOW);
 
 //Functions for performing non-blocking operations on the ONEWIRE bus
 /**
@@ -111,38 +131,40 @@ uint8_t ONEWireGetCurrentPinValue(void);
  * Perfom all the task needed. This function must to be called in principal loop all the time.
  * @param [in] usCurrentTime: these are the current usec.
  */
-void ONEWireTask(uint32_t usCurrentTime);
+void ONEWireTask(_sOWHandle *aOW, uint32_t usCurrentTime);
 
 /**
  * @brief ONEWireReadByteTask
  * @return
  */
-uint8_t ONEWireReadByteTask(void);
+_eONEWIREStatus ONEWireReadByteTask(_sOWHandle *aOW);
 
 /**
  * @brief ONEWireWriteByteTask
  * @param byteValue
  * @return
  */
-uint8_t ONEWireWriteByteTask(uint8_t byteValue);
+_eONEWIREStatus ONEWireWriteByteTask(_sOWHandle *aOW, uint8_t byteValue);
 
 /**
  * @brief ONEWireResetTask
  * @return
  */
-uint8_t ONEWireResetTask(void);
+_eONEWIREStatus ONEWireResetTask(_sOWHandle *aOW);
 
 /**
  * @brief ONEWireGetStatusTask
  * @return
  */
-uint8_t ONEWireGetStatusTask(void);
+_eONEWIREStatus ONEWireGetStatusTask(_sOWHandle *aOW);
 
 /**
  * @brief ONEWireGetLastByteReadTask
  * @return
  */
-uint8_t ONEWireGetLastByteReadTask(void);
+uint8_t ONEWireGetLastByteReadTask(_sOWHandle *aOW);
+
+
 
     /* Provide C++ Compatibility */
 #ifdef __cplusplus

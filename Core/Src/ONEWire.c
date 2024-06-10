@@ -15,359 +15,336 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include "ONEWire.h"
 
-static void (*mySetPinInputFcn)(void) = NULL;
-static void (*mySetPinOutputFcn)(void) = NULL;
-static void (*myWritePinBitFcn)(uint8_t value) = NULL;
-static uint8_t (*myReadPinBitFcn)(void) = NULL;
-static int (*myDelayusFcn)(int usDelay) = NULL;
+//static void (*mySetPinInputFcn)(void) = NULL;
+//static void (*mySetPinOutputFcn)(void) = NULL;
+//static void (*myWritePinBitFcn)(uint8_t value) = NULL;
+//static uint8_t (*myReadPinBitFcn)(void) = NULL;
+//static int (*myDelayusFcn)(int usDelay) = NULL;
+//
+//static uint8_t oneWireTaskStatus = ONEWIREERROR;
+//
+//static enum eTaskStatus{
+//    IDLE = 0,
+//    RESETSTATE0,
+//    RESETSTATE1,
+//    RESETSTATE2,
+//    RESETSTATE3,
+//    WRITEBITSTATE0,
+//    WRITEBITSTATE1,
+//    WRITEBITSTATE2,
+//    WRITEBITSTATE3,
+//    WRITEBITSTATE4,
+//    READBITSTATE0,
+//    READBITSTATE1,
+//    READBITSTATE2,
+//    READBITSTATE3,
+//    READBITSTATE4,
+//} taskStatus;
+//
+//static struct sTaskData{
+//    uint8_t     byteValue;
+//    uint8_t     bitIndex;
+//    uint32_t    usLastTime;
+//    uint32_t    usWaitFor;
+//} taskData;
 
-static uint8_t oneWireTaskStatus = ONEWIREERROR;
+//static uint8_t isPresent = 0;
+//static uint8_t bitRed = 0;
+//static uint8_t setCurrentus = 0;
 
-static enum eTaskStatus{
-    IDLE = 0,
-    RESETSTATE0,
-    RESETSTATE1,
-    RESETSTATE2,        
-    RESETSTATE3,        
-    WRITEBITSTATE0,
-    WRITEBITSTATE1,
-    WRITEBITSTATE2,
-    WRITEBITSTATE3,
-    WRITEBITSTATE4,
-    READBITSTATE0,
-    READBITSTATE1,
-    READBITSTATE2,
-    READBITSTATE3,
-    READBITSTATE4,
-} taskStatus; 
-
-static struct sTaskData{
-    uint8_t     byteValue;
-    uint8_t     bitIndex;
-    uint32_t    usLastTime;
-    uint32_t    usWaitFor;    
-} taskData;
-
-static uint8_t isPresent = 0;
+#define IDLE			0
+#define RESETSTATE0		1
+#define RESETSTATE1		2
+#define RESETSTATE2		3
+#define RESETSTATE3		4
+#define WRITEBITSTATE0	5
+#define WRITEBITSTATE1	6
+#define WRITEBITSTATE2	7
+#define WRITEBITSTATE3	8
+#define READBITSTATE0	9
+#define READBITSTATE1	10
+#define READBITSTATE2	11
 
 
-void ONEWire_Init(_sOWConfig* aOW){
-    mySetPinInputFcn = aOW->SETPinInput;
-    mySetPinOutputFcn = aOW->SETPinOutput;
-    myWritePinBitFcn = aOW->WritePinBit;
-    myReadPinBitFcn = aOW->ReadPinBit;
-    myDelayusFcn = aOW->DELAYus;
+void ONEWire_Init(_sOWHandle *aOW){
+	aOW->taskData.status = ONEWIRE_ST_ERROR;
+
+	if(aOW->DELAYus == NULL)
+		return;
+	if(aOW->ReadPinBit == NULL)
+		return;
+	if(aOW->SETPinInput == NULL)
+		return;
+	if(aOW->WritePinBit == NULL)
+		return;
+	if(aOW->SETPinOutput == NULL)
+		return;
+
+    memset(&aOW->taskData, 0, sizeof(aOW->taskData));
     
-    oneWireTaskStatus = ONEWIREERROR;
-    
-    if(mySetPinInputFcn == NULL)
-        return;
-    if(mySetPinOutputFcn == NULL)
-        return;
-    if(myWritePinBitFcn == NULL)
-        return;
-    if(myDelayusFcn == NULL)
-        return;
-    
-    oneWireTaskStatus = ONEWIREREADY;
+    aOW->taskData.stateTask = IDLE;
+
+    aOW->taskData.status = ONEWIRE_ST_READY;
 }
 
-uint8_t ONEWireReset(void){
-    if(oneWireTaskStatus == ONEWIREERROR){
-        return ONEWIREERROR;
-    }
-	uint8_t presence;
+_eONEWIREStatus ONEWireReset(_sOWHandle *aOW){
+	if(aOW->taskData.status == ONEWIRE_ST_ERROR)
+        return ONEWIRE_ST_ERROR;
 
-    mySetPinOutputFcn();
+	aOW->SETPinOutput();
 
-    myWritePinBitFcn(0);
+    aOW->WritePinBit(0);
     
-    myDelayusFcn(480);
+    aOW->DELAYus(480);
 
-    mySetPinInputFcn();
+    aOW->SETPinInput();
     
-    myDelayusFcn(80);
+    aOW->DELAYus(80);
     
-    presence = myReadPinBitFcn();
+    aOW->taskData.flags.bit.isPresent = aOW->ReadPinBit();
     
-    myDelayusFcn(400);
+    aOW->DELAYus(400);
     
-    if(presence)
-        return ONEWIREISPRESENT;
-    
-    return ONEWIREERROR;
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireWriteBit(uint8_t bitValue){
-    if(oneWireTaskStatus == ONEWIREERROR)
-        return ONEWIREERROR;
+_eONEWIREStatus ONEWireWriteBit(_sOWHandle *aOW, uint8_t bitValue){
+	if(aOW->taskData.status == ONEWIRE_ST_ERROR)
+        return ONEWIRE_ST_ERROR;
 
-    mySetPinOutputFcn();
+	aOW->SETPinOutput();
 
-    myWritePinBitFcn(0);
+    aOW->WritePinBit(0);
     
-    myDelayusFcn(6);
+    aOW->DELAYus(3);
     
     if(bitValue)
-        mySetPinInputFcn();
+    	aOW->SETPinInput();
 
-    myDelayusFcn(54);
+    aOW->DELAYus(57);
 
-    mySetPinInputFcn();
+	aOW->SETPinInput();
 
-    myDelayusFcn(10);
+    aOW->DELAYus(3);
     
-    return ONEWIREREADY;
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireReadBit(uint8_t *bitValue){
-    if(oneWireTaskStatus == ONEWIREERROR)
-        return ONEWIREERROR;
+_eONEWIREStatus ONEWireReadBit(_sOWHandle *aOW, uint8_t *bitValue){
+	if(aOW->taskData.status == ONEWIRE_ST_ERROR)
+        return ONEWIRE_ST_ERROR;
 
-    mySetPinOutputFcn();
-    
-    myWritePinBitFcn(0);
+	aOW->SETPinOutput();
 
-    myDelayusFcn(6);
+    aOW->WritePinBit(0);
     
-    mySetPinInputFcn();
+    aOW->DELAYus(1);
     
-    myDelayusFcn(9);
+    aOW->SETPinInput();
     
-    *bitValue = myReadPinBitFcn();
+    aOW->DELAYus(9);
     
-    myDelayusFcn(55);
+    *bitValue = aOW->ReadPinBit();
+    
+    aOW->DELAYus(48);
 
-    return ONEWIREREADY;
-
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireReadByte(uint8_t *byteValue){
-    if(oneWireTaskStatus == ONEWIREERROR){
-        return ONEWIREERROR;
-    }
+_eONEWIREStatus ONEWireReadByte(_sOWHandle *aOW, uint8_t *byteValue){
+	if(aOW->taskData.status == ONEWIRE_ST_ERROR)
+        return ONEWIRE_ST_ERROR;
+
 	uint8_t i = 8;
     uint8_t byte = 0;
     uint8_t bitValue;
 
 	while (i--) {
 		byte >>= 1;
-        ONEWireReadBit(&bitValue);
+        ONEWireReadBit(aOW, &bitValue);
         if(bitValue)
             byte |= 0x80;
 	}
 
     *byteValue = byte;
     
-	return ONEWIREREADY;    
+	return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireWriteByte(uint8_t byte){
-    if(oneWireTaskStatus == ONEWIREERROR)
-        return ONEWIREERROR;
+_eONEWIREStatus ONEWireWriteByte(_sOWHandle *aOW, uint8_t byte){
+	if(aOW->taskData.status == ONEWIRE_ST_ERROR)
+        return ONEWIRE_ST_ERROR;
     
     uint8_t i = 8;
     
 	while (i--) {
-        ONEWireWriteBit(byte & 0x01);
+        ONEWireWriteBit(aOW, byte & 0x01);
 		byte >>= 1;
 	}
     
-    return ONEWIREREADY;
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireGetCurrentPinValue(void){
-    return myReadPinBitFcn();
+uint8_t ONEWireGetCurrentPinValue(_sOWHandle *aOW){
+    return aOW->ReadPinBit();
 }
 
 
 //TASK functions
-void ONEWireTask(uint32_t usCurrentTime){
+void ONEWireTask(_sOWHandle *aOW, uint32_t usCurrentTime){
     uint32_t aux;
 
-    if(taskData.usWaitFor){
-        aux = usCurrentTime - taskData.usLastTime;
-        if(aux >= taskData.usWaitFor)
-            taskData.usWaitFor = 0;
+    if(aOW->taskData.flags.bit.setCurrentus){
+    	aOW->taskData.flags.bit.setCurrentus = 0;
+    	aOW->taskData.usLastTime = usCurrentTime;
+    }
+
+    if(aOW->taskData.usWaitFor){
+        aux = usCurrentTime - aOW->taskData.usLastTime;
+        if(aux >= aOW->taskData.usWaitFor)
+        	aOW->taskData.usWaitFor = 0;
         else
             return;
     }
-    else
-        taskData.usLastTime = usCurrentTime;
+
+    aOW->taskData.usLastTime = usCurrentTime;
     
-    switch(taskStatus){
+    switch(aOW->taskData.stateTask){
         case IDLE:
-            oneWireTaskStatus = ONEWIREREADY;
+        	aOW->taskData.status = ONEWIRE_ST_READY;
             break;
         case RESETSTATE0:
-            myWritePinBitFcn(0);
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 480;
-            taskStatus = RESETSTATE1;
+        	aOW->SETPinOutput();
+            aOW->WritePinBit(0);
+            aOW->taskData.usWaitFor = 480;
+            aOW->taskData.stateTask = RESETSTATE1;
             break;
         case RESETSTATE1:
-            mySetPinInputFcn();
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 70;
-            taskStatus = RESETSTATE2; 
+        	aOW->SETPinInput();
+            aOW->taskData.usWaitFor = 70;
+            aOW->taskData.stateTask = RESETSTATE2;
             break;
         case RESETSTATE2:
-            isPresent = myReadPinBitFcn();
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 410;
-            taskStatus = RESETSTATE3; 
+        	aOW->taskData.flags.bit.isPresent = aOW->ReadPinBit();
+            aOW->taskData.usWaitFor = 410;
+            aOW->taskData.stateTask = RESETSTATE3;
             break;
         case RESETSTATE3:
-            taskStatus = IDLE;
-            oneWireTaskStatus = ONEWIREREADY;
+        	aOW->taskData.stateTask = IDLE;
+        	aOW->taskData.status = ONEWIRE_ST_READY;
             break;
         case WRITEBITSTATE0:
-//            __builtin_disable_interrupts();
-//            mySetPinOutputFcn();
-//            _nop();
-//            myWritePinBitFcn(0);
-//            myDelayusFcn(6);
-//            if(taskData.byteValue & taskData.bitIndex)
-//                mySetPinInputFcn();
-//            __builtin_enable_interrupts();
-//            taskData.usLastTime = usCurrentTime;
-//            taskData.usWaitFor = 54;
-//            taskStatus = WRITEBITSTATE2;
-
-            mySetPinOutputFcn();
-
-            myWritePinBitFcn(0);
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 4;
-            taskStatus = WRITEBITSTATE1;    
+        	aOW->SETPinOutput();
+        	aOW->WritePinBit(0);
+        	aOW->DELAYus(2);
+        	aOW->taskData.stateTask = WRITEBITSTATE1;
             break;
         case WRITEBITSTATE1:
-            if(taskData.byteValue & taskData.bitIndex)
-                mySetPinInputFcn();
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 54;
-            taskStatus = WRITEBITSTATE2;
+            if(aOW->taskData.byteValue & aOW->taskData.bitIndex)
+                aOW->SETPinInput();
+            aOW->taskData.usWaitFor = 60;
+            aOW->taskData.stateTask = WRITEBITSTATE2;
             break;
         case WRITEBITSTATE2:
-            mySetPinInputFcn();
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 10;
-            taskData.bitIndex <<= 1;
-            if(taskData.bitIndex)
-                taskStatus = WRITEBITSTATE0;
+        	aOW->SETPinInput();
+            aOW->taskData.usWaitFor = 10;
+            aOW->taskData.bitIndex <<= 1;
+            if(aOW->taskData.bitIndex)
+            	aOW->taskData.stateTask = WRITEBITSTATE0;
             else
-                taskStatus = WRITEBITSTATE3;
+            	aOW->taskData.stateTask = WRITEBITSTATE3;
             break;
         case WRITEBITSTATE3:
-            taskStatus = IDLE;
-            oneWireTaskStatus = ONEWIREREADY;
+        	aOW->taskData.stateTask = IDLE;
+            aOW->taskData.status = ONEWIRE_ST_READY;
             break;
         case READBITSTATE0:
-//            __builtin_disable_interrupts();
-//            mySetPinOutputFcn();
-//            _nop();
-//            myWritePinBitFcn(0);
-//            myDelayusFcn(6);
-//            mySetPinInputFcn();
-//            myDelayusFcn(10);
-//            isPresent = myReadPinBitFcn();
-//            __builtin_enable_interrupts();
-//            taskData.byteValue >>= 1;
-//            if(isPresent == 1)
-//                taskData.byteValue |= 0x80;
-//            taskData.usLastTime = usCurrentTime;
-//            taskData.usWaitFor = 54;
-//            taskStatus = READBITSTATE3;    
-
-            mySetPinOutputFcn();
-
-            myWritePinBitFcn(0);
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 4;
-            taskStatus = READBITSTATE1;    
+        	aOW->SETPinOutput();
+        	aOW->WritePinBit(0);
+        	aOW->DELAYus(1);
+        	aOW->SETPinInput();
+            aOW->taskData.usWaitFor = 5;
+            aOW->taskData.stateTask = READBITSTATE1;
             break;
         case READBITSTATE1:
-            mySetPinInputFcn();
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 6;
-            taskStatus = READBITSTATE2;    
+        	aOW->taskData.flags.bit.bitValue = aOW->ReadPinBit();
+            aOW->taskData.byteValue >>= 1;
+            if(aOW->taskData.flags.bit.bitValue)
+                aOW->taskData.byteValue |= 0x80;
+            aOW->taskData.usWaitFor = 60;
+            aOW->taskData.stateTask = READBITSTATE2;
             break;
-        case READBITSTATE2:     
-            isPresent = myReadPinBitFcn();
-            taskData.byteValue >>= 1;
-            if(isPresent == 1)
-                taskData.byteValue |= 0x80;
-            taskData.usLastTime = usCurrentTime;
-            taskData.usWaitFor = 60;
-            taskStatus = READBITSTATE3;    
-            break;
-        case READBITSTATE3:
-            taskData.bitIndex >>= 1;
-            if(taskData.bitIndex)
-                taskStatus = READBITSTATE0;
+        case READBITSTATE2:
+            aOW->taskData.bitIndex >>= 1;
+            if(aOW->taskData.bitIndex)
+            	aOW->taskData.stateTask = READBITSTATE0;
             else{
-                taskStatus = IDLE;
-                oneWireTaskStatus = ONEWIREREADY;
+            	aOW->taskData.stateTask = IDLE;
+            	aOW->taskData.status = ONEWIRE_ST_READY;
             }
             break;
         default:
-            taskStatus = IDLE;
+        	aOW->taskData.stateTask = IDLE;
+        	aOW->taskData.status = ONEWIRE_ST_READY;
     }
                 
 }
 
-uint8_t ONEWireReadByteTask(void){
-    if(oneWireTaskStatus == ONEWIREBUSY)
-        return ONEWIREBUSY;
+_eONEWIREStatus ONEWireReadByteTask(_sOWHandle *aOW){
+    if(aOW->taskData.status == ONEWIRE_ST_BUSY)
+        return ONEWIRE_ST_BUSY;
 
-    taskData.byteValue = 0;
-    taskData.bitIndex = 0x80;
-    taskStatus = READBITSTATE0;
-    oneWireTaskStatus = ONEWIREBUSY;
+    aOW->taskData.byteValue = 0;
+    aOW->taskData.bitIndex = 0x80;
+    aOW->taskData.stateTask = READBITSTATE0;
+    aOW->taskData.flags.bit.setCurrentus = 1;
+    aOW->taskData.status = ONEWIRE_ST_BUSY;
     
-    return ONEWIREREADY;
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireWriteByteTask(uint8_t byteValue){
-    if(oneWireTaskStatus == ONEWIREBUSY)
-        return ONEWIREBUSY;
+_eONEWIREStatus ONEWireWriteByteTask(_sOWHandle *aOW, uint8_t byteValue){
+    if(aOW->taskData.status == ONEWIRE_ST_BUSY)
+        return ONEWIRE_ST_BUSY;
     
-    taskData.bitIndex = 1;
-    taskData.byteValue = byteValue;
-    taskStatus = WRITEBITSTATE0;
-    oneWireTaskStatus = ONEWIREBUSY;
+    aOW->taskData.bitIndex = 1;
+    aOW->taskData.byteValue = byteValue;
+    aOW->taskData.stateTask = WRITEBITSTATE0;
+    aOW->taskData.flags.bit.setCurrentus = 1;
+    aOW->taskData.status = ONEWIRE_ST_BUSY;
     
-    return ONEWIREREADY;
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireResetTask(void){
-    if(oneWireTaskStatus == ONEWIREBUSY)
-        return ONEWIREBUSY;
+_eONEWIREStatus ONEWireResetTask(_sOWHandle *aOW){
+    if(aOW->taskData.status == ONEWIRE_ST_BUSY)
+        return ONEWIRE_ST_BUSY;
     
-    mySetPinOutputFcn();
-    myWritePinBitFcn(1);
-    taskData.usWaitFor = 3;
-    taskStatus = RESETSTATE0;
-    isPresent = 0;
-    oneWireTaskStatus = ONEWIREBUSY;
+    aOW->SETPinOutput();
+    aOW->WritePinBit(1);
+    aOW->taskData.usWaitFor = 3;
+    aOW->taskData.stateTask = RESETSTATE0;
+    aOW->taskData.flags.bit.isPresent = 1;
+    aOW->taskData.flags.bit.setCurrentus = 1;
+    aOW->taskData.status = ONEWIRE_ST_BUSY;
     
-    return ONEWIREREADY;
+    return ONEWIRE_ST_OK;
 }
 
-uint8_t ONEWireGetStatusTask(void){
-    return oneWireTaskStatus;
+_eONEWIREStatus ONEWireGetStatusTask(_sOWHandle *aOW){
+    return aOW->taskData.status;
 }
 
-uint8_t ONEWireGetLastByteReadTask(void){
-    oneWireTaskStatus = ONEWIREREADY;
-    return taskData.byteValue;
+uint8_t ONEWireGetLastByteReadTask(_sOWHandle *aOW){
+    return  aOW->taskData.byteValue;
 }
 
 
-uint8_t ONEWireIsPresent(){
-    if(isPresent)
+uint8_t ONEWireIsPresent(_sOWHandle *aOW){
+    if(aOW->taskData.flags.bit.isPresent)
         return 0;
     return 1;
 }
