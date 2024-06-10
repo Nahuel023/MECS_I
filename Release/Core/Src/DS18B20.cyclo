@@ -1,0 +1,5 @@
+../Core/Src/DS18B20.c:61:6:DS18B20_Task	18
+../Core/Src/DS18B20.c:135:9:DS18B20_Init	1
+../Core/Src/DS18B20.c:143:9:DS18B20_StartReadTemp	2
+../Core/Src/DS18B20.c:156:9:DS18B20_ReadLastTemp	1
+../Core/Src/DS18B20.c:161:9:DS18B20_Status	1

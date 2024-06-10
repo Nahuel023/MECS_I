@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBox_CMD->addItem("ALIVE", 0xF0);
     ui->comboBox_CMD->addItem("FIRMWARE", 0xF1);
     ui->comboBox_CMD->addItem("DS18B20", 0xA1);
+    ui->comboBox_CMD->addItem("ELAPSED", 0x12);
 
     estadoProtocolo=START;
     rxData.timeOut=0;
@@ -199,7 +200,6 @@ void MainWindow::decodeData(uint8_t *datosRx, uint8_t source){
             if(source)
                     str="ALIVE BLUEPILL VIA *SERIE* RECIBIDO!!!";
             else{
-                    contadorAlive++;
                     str="ALIVE BLUEPILL VIA *UDP* RECIBIDO N°: " + QString().number(contadorAlive,10);
             }
         }else{
@@ -223,8 +223,19 @@ void MainWindow::decodeData(uint8_t *datosRx, uint8_t source){
 
         tempDS18B20 = w.i16[0];
 
-        ui->textEdit_PROCCES->append(str + QString::number(tempDS18B20, 'f', 2));
+        ui->textEdit_PROCCES->append(str + QString::number(tempDS18B20/16, 'f', 2));
 
+        break;
+
+    case ELAPSED:
+        str = "ELAPSEDTIME:";
+        w.ui8[0] = datosRx[2];
+        w.ui8[1] = datosRx[3];
+        w.ui8[2] = datosRx[4];
+        w.ui8[3] = datosRx[5];
+        elapsedtime = w.i32;
+
+        ui->textEdit_PROCCES->append(str + QString().number(elapsedtime ,10));
         break;
 
     default:

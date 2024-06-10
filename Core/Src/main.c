@@ -27,13 +27,21 @@
 #include "ESP01.h"
 
 #include "util.h"
+#include "delay_non_blocking.h"
+#include "ONEWire.h"
+#include "DS18B20.h"
 
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef enum{
+	INIT_DS18B20,
+	CONFIG1_DS18B20,
+	CONFI2_DS18B20,
+	RESPONSE_DS18B20
+} _eStart;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -48,6 +56,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
@@ -72,40 +81,23 @@ uint8_t bufAUX_Tx[256];
 _sESP01Handle ESP01Manager;
 //Configuracion de valores para conexion UDP
 // FACULTAD
-
+/*
 const char SSID[]= "FCAL-Personal";
 const char PASSWORD[]= "fcal-uner+2019";
 const char RemoteIP[]="172.22.243.121";
 uint16_t RemotePORT = 30010;
 uint16_t LocalPORT = 30001;
-
-
+*/
+char strAux[16];
 //CASA
-/*
+
 const char SSID[]= "ANM2";
 const char PASSWORD[]= "anm157523";
 const char RemoteIP[]="192.168.0.14";
 uint16_t RemotePORT = 30010;
-uint16_t LocalPORT = 30001;*/
+uint16_t LocalPORT = 30001;
 
 /* COMUNICACION CODE EDN PV */
-
-/* TIMECONTROL CODE BEGIN PV */
-
-/**
- * @brief Estructura para manejar el tiempo
- *
- */
-typedef struct{
-    int32_t    startTime;   //Almacena el tiempo leido del timer
-    uint16_t    interval;   //intervalo de comparación para saber si ya transcurrio el tiempo leido
-    uint8_t     isRunnig;   //indica si el delay está activo o no
-}_delay_t;
-
-
-_delay_t  waitMode;
-
-/* TIMECONTROL CODE EDN PV */
 
 
 /* MANIPULACION DE DATOS Y BANDERAS CODE BEGIN PV */
@@ -113,6 +105,18 @@ uint8_t robotMode = IDLE;
 _work w;
 _flag flag1;
 _flag flag2;
+
+_delay_t  waitMode;
+
+uint8_t countERRORS = 0;
+int16_t lastTemp = 0;
+
+uint32_t lastTick;
+uint32_t elapsedTicks;
+uint32_t elapsedTime_us;
+
+//DS18B20
+_sOWConfig myOWConfiguration;
 /* MANIPULACION DE DATOS Y BANDERAS CODE END PV */
 
 /* HEARTBEAT CODE BEGIN PV */
@@ -125,6 +129,7 @@ uint8_t indexHb = 0;
 uint8_t time10ms;
 uint8_t time100ms;
 uint8_t time1seg;
+uint8_t time2seg;
 uint16_t time5seg;
 
 
@@ -138,6 +143,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* COMUNICACION CODE BEGIN PFP */
@@ -168,36 +174,22 @@ void GetESP01dbg(const char *dbgStr);
 
 /* COMUNICACION CODE EDN PV */
 
-/* TIMECONTROL CODE BEGIN PV */
-
-/**
- * @brief Configura el entervalo del Delay
- *
- * @param delay     Estructura para manejar el tiempo
- * @param interval  intervalo de comparación para saber si ya transcurrio el tiempo leido
- */
-void delayConfig(_delay_t *delay, uint32_t  interval);
-
-/**
- * @brief Lee el Delay para determinar si se ha cumplido el tiempo establecido
- *
- * @param delay     Estructura para manejar el tiempo
- * @return uint8_t  Returna True o False de acuerdo a si se cumplio el tiempo o no
- */
-uint8_t delayRead(_delay_t *delay);
-
-/**
- * @brief PErmite modificar el intervalo establecido para un Delay y lo resetea
- *
- * @param delay     Estructura para manejar el tiempo
- * @param interval  intervalo de comparación para saber si ya transcurrio el tiempo leido
- */
-void delayWrite(_delay_t *delay, uint16_t interval);
-
-/* TIMECONTROL CODE EDN PV */
-
 /* DS18B20 CODE BEGIN PFP */
-void delay (uint16_t time);
+
+void Set_Pin_Output (GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
+
+void Set_Pin_Input (GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin);
+
+void OneWireSetPinInput(void);
+
+void OneWireSerPinOutput(void);
+
+uint8_t OneWireReadPin(void);
+
+void OneWireWritePin(uint8_t value);
+
+int delay_us(int us);
+
 /* DS18B20 CODE END PFP */
 
 /* USER CODE END PFP */
@@ -321,6 +313,15 @@ void DecodeCMD(_rx *RX, _tx *tx){												//Decodifico el comando que llegue 
             PutStrOnTx(tx, FIRMWAREVERSION);
             CalcAndPutCksOnTx(tx);
             break;
+        case 0xA0:
+        	PutHeaderOnTx(tx, 0x12, 5);
+        	w.i32 = elapsedTime_us;
+        	PutByteOnTx(tx, w.u8[0]);
+        	PutByteOnTx(tx, w.u8[1]);
+        	PutByteOnTx(tx, w.u8[2]);
+        	PutByteOnTx(tx, w.u8[3]);
+        	CalcAndPutCksOnTx(tx);
+        	break;
         default:
             PutHeaderOnTx(tx, RX->buf[RX->iData], 2);        //Devuelve 0xFF si hay un comando que no se interpretó
             PutByteOnTx(tx, 0xFF);
@@ -482,11 +483,17 @@ void On10ms(){	//ticker que indica cuando paso 10ms
 		time1seg = 100;
 	}
 
+	time2seg--;
+		if(!time2seg){
+			IS2SEG = 1;
+			time2seg = 200;
+		}
+
 	time100ms--;
 	if(!time100ms){
 		IS100MS = 1;
 		time100ms = 10;
-		//hearbeatTask();
+		hearbeatTask();
 	}
 
 	ESP01_Timeout10ms();
@@ -499,6 +506,36 @@ void On5s(){	//ticker que indica cuando paso 5s
 	PutHeaderOnTx(&txUSART, 0xF0, 2);
 	PutByteOnTx(&txUSART, 0x0D);
 	CalcAndPutCksOnTx(&txUSART);
+
+	PutHeaderOnTx(&txUSART, 0xA1, 3);
+	w.i16[0]= lastTemp;
+	PutByteOnTx(&txUSART, w.u8[0]);
+	PutByteOnTx(&txUSART, w.u8[1]);
+	CalcAndPutCksOnTx(&txUSART);
+
+	w.i16[0]= lastTemp;
+	PutHeaderOnTx(&txUSB, 0xA1, 3);
+	PutByteOnTx(&txUSB, w.u8[0]);
+	PutByteOnTx(&txUSB, w.u8[1]);
+	CalcAndPutCksOnTx(&txUSB);
+
+}
+
+void On2s(){
+
+	PutHeaderOnTx(&txUSB, 0x12, 5);
+	w.u32 = elapsedTime_us;
+	PutByteOnTx(&txUSB, w.u8[0]);
+	PutByteOnTx(&txUSB, w.u8[1]);
+	PutByteOnTx(&txUSB, w.u8[2]);
+	PutByteOnTx(&txUSB, w.u8[3]);
+	CalcAndPutCksOnTx(&txUSB);
+
+	DS18B20_StartReadTemp();
+	PutHeaderOnTx(&txUSB, 0xF1, 16);
+	PutStrOnTx(&txUSB, "TSTART        ");
+	CalcAndPutCksOnTx(&txUSB);
+
 }
 
 void CHENState (uint8_t value){
@@ -538,59 +575,9 @@ void GetESP01dbg(const char *dbgStr){
 	//PutStrOnTx(&txUSB, dbgStr);
 }
 
-/* TIMECONTROL CODE BEGIN PV */
 
-void delayConfig(_delay_t *delay, uint32_t  interval){
-    delay->interval =interval;
-    delay->isRunnig = DFALSE;
-}
-
-uint8_t delayRead(_delay_t *delay){
-    uint8_t timeReach = DFALSE;
-    uint32_t elapsedTime;
-
-    if(!delay->isRunnig){
-        delay->isRunnig = DTRUE;
-        delay->startTime = SysTick->VAL;
-    }else{
-
-    	if (SysTick->VAL > delay->startTime) {
-    	    // El contador se ha desbordado
-    	    elapsedTime = (((SysTick->LOAD +1) - SysTick->VAL) + delay->startTime);
-    	} else {
-    	    elapsedTime = delay->startTime - SysTick->VAL;
-    	}
-
-        if(elapsedTime>=delay->interval){
-            timeReach = DTRUE;
-            delay->isRunnig = DFALSE;
-        }
-    }
-    return timeReach;
-}
-
-void delayWrite(_delay_t *delay, uint16_t interval){
-    delay->interval = interval;
-    delay->isRunnig = DFALSE;
-}
-
-/* TIMECONTROL CODE EDN PV */
-
-void delay (uint16_t time)
-{
-	//uint32_t valorActual = SysTick->VAL;
-	/* change your code here for the delay in microseconds */
-	//__HAL_TIM_SET_COUNTER(&htim3, 0);
-	//while ((__HAL_TIM_GET_COUNTER(&htim3))<time);
-}
 
 /*********************************** DS18B20 FUNCTIONS ****************************************/
-uint8_t Rh_byte1, Rh_byte2, Temp_byte1, Temp_byte2;
-uint16_t SUM, RH, TEMP;
-
-//float Temperature = 0;
-//float Humidity = 0;
-uint8_t Presence = 0;
 
 void Set_Pin_Output (GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
 {
@@ -610,81 +597,45 @@ void Set_Pin_Input (GPIO_TypeDef *GPIOx, uint16_t GPIO_Pin)
 	HAL_GPIO_Init(GPIOx, &GPIO_InitStruct);
 }
 
-#define DS18B20_PORT GPIOA
-#define DS18B20_PIN GPIO_PIN_1
-
-uint8_t DS18B20_Start (void)
-{
-	uint8_t Response = 0;
-	Set_Pin_Output(DS18B20_PORT, DS18B20_PIN);   // set the pin as output
-	HAL_GPIO_WritePin (DS18B20_PORT, DS18B20_PIN, 0);  // pull the pin low
-	delay (480);   // delay according to datasheet
-
-	Set_Pin_Input(DS18B20_PORT, DS18B20_PIN);    // set the pin as input
-	delay (80);    // delay according to datasheet
-
-	if (!(HAL_GPIO_ReadPin (DS18B20_PORT, DS18B20_PIN))) Response = 1;    // if the pin is low i.e the presence pulse is detected
-	else Response = -1;
-
-	delay (400); // 480 us delay totally.
-
-	return Response;
-}
-
-void DS18B20_Write (uint8_t data)
-{
-	Set_Pin_Output(DS18B20_PORT, DS18B20_PIN);  // set as output
-
-	for (int i=0; i<8; i++)
-	{
-
-		if ((data & (1<<i))!=0)  // if the bit is high
-		{
-			// write 1
-
-			Set_Pin_Output(DS18B20_PORT, DS18B20_PIN);  // set as output
-			HAL_GPIO_WritePin (DS18B20_PORT, DS18B20_PIN, 0);  // pull the pin LOW
-			delay (1);  // wait for 1 us
-
-			Set_Pin_Input(DS18B20_PORT, DS18B20_PIN);  // set as input
-			delay (50);  // wait for 60 us
-		}
-
-		else  // if the bit is low
-		{
-			// write 0
-
-			Set_Pin_Output(DS18B20_PORT, DS18B20_PIN);
-			HAL_GPIO_WritePin (DS18B20_PORT, DS18B20_PIN, 0);  // pull the pin LOW
-			delay (50);  // wait for 60 us
-
-			Set_Pin_Input(DS18B20_PORT, DS18B20_PIN);
-		}
-	}
-}
-
-uint8_t DS18B20_Read (void)
-{
-	uint8_t value=0;
-
+void OneWireSetPinInput(void){
 	Set_Pin_Input(DS18B20_PORT, DS18B20_PIN);
-
-	for (int i=0;i<8;i++)
-	{
-		Set_Pin_Output(DS18B20_PORT, DS18B20_PIN);   // set as output
-
-		HAL_GPIO_WritePin (DS18B20_PORT, DS18B20_PIN, 0);  // pull the data pin LOW
-		delay (1);  // wait for > 1us
-
-		Set_Pin_Input(DS18B20_PORT, DS18B20_PIN);  // set as input
-		if (HAL_GPIO_ReadPin (DS18B20_PORT, DS18B20_PIN))  // if the pin is HIGH
-		{
-			value |= 1<<i;  // read = 1
-		}
-		delay (50);  // wait for 60 us
-	}
-	return value;
 }
+
+void OneWireSerPinOutput(void){
+	Set_Pin_Output(DS18B20_PORT, DS18B20_PIN);
+}
+
+uint8_t OneWireReadPin(void){
+	return HAL_GPIO_ReadPin (DS18B20_PORT, DS18B20_PIN);
+}
+
+void OneWireWritePin(uint8_t value){
+	HAL_GPIO_WritePin (DS18B20_PORT, DS18B20_PIN, value);
+}
+
+int delay_us(int us)
+{
+	//__HAL_TIM_SET_COUNTER(&htim3,0);  // set the counter value a 0
+	//while (__HAL_TIM_GET_COUNTER(&htim3) < us);  // wait for the counter to reach the us input in the parameter
+
+	return 1;
+}
+
+uint32_t overflowCount = 0;
+uint32_t lastCount = 0;
+
+void GetElapsedTime(void)
+{
+	uint32_t currentCount = TIM3->CNT;
+	if (currentCount < lastCount) {
+		overflowCount++;
+	}
+	lastCount = currentCount;
+	elapsedTime_us = currentCount + overflowCount * TIM3->ARR;
+
+}
+
+
 
 /* USER CODE END 0 */
 
@@ -767,11 +718,23 @@ int main(void)
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+
+  //DS18B20
+  myOWConfiguration.DELAYus = &delay_us;
+  myOWConfiguration.SETPinInput = &OneWireSetPinInput;
+  myOWConfiguration.SETPinOutput = &OneWireSerPinOutput;
+  myOWConfiguration.ReadPinBit = &OneWireReadPin;
+  myOWConfiguration.WritePinBit = &OneWireWritePin;
+
+  DS18B20_Init(&myOWConfiguration);
+
 
   //Inicializacion de DELAYNOBLOKING
   delayConfig(&waitMode, MICROSTOTICKS(500));
-  uint8_t countmili = 40;
+
+  //uint16_t countms = 40;
   //COMUNICACION USB
   CDC_Attach_RxFun(OnUSBRx);
   DATAREADY = 0;
@@ -788,6 +751,7 @@ int main(void)
   //END CONFIGURACION UDP
 
   HAL_TIM_Base_Start_IT (&htim2);										//Se habilita la interrupcion del timer2
+  HAL_TIM_Base_Start(&htim3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -798,7 +762,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  //getElapsedTime_us();
+	  GetElapsedTime();
 	  ESP01_Task();
+	  DS18B20_Task(elapsedTime_us);
 
 	  if(IS10MS){
 		  IS10MS = 0;
@@ -808,6 +775,11 @@ int main(void)
 	  if(IS5SEG){
 		  IS5SEG = 0;
 		  On5s();
+	  }
+
+	  if(IS2SEG){
+		  IS2SEG = 0;
+		  On2s();
 	  }
 
 	  if(rxUSB.ISCMD)                          					//Si se encontro un comando
@@ -828,45 +800,36 @@ int main(void)
 	  if(txUSART.iw != txUSART.ir)								//Si hay algo para transmitir por el USART
 		  TransmitUSART();
 
-	  if(delayRead(&waitMode)){
-		  countmili--;
-		  if(!countmili){
+	  /*if(delayRead(&waitMode)){
+		  countms--;
+		  if(!countms){
 			  HAL_GPIO_TogglePin(HEARBEAT_LED_GPIO_Port, HEARBEAT_LED_Pin);
-			  countmili = 400;
+			  countms = 400;
+		  }
+	  }*/
+
+	  w.i8[0] = DS18B20_Status();
+	  if(w.i8[0] == DS18B20TEMPREADY || w.i8[0] == DS18B20TEMPERROR){
+		  if(w.i8[0] == DS18B20TEMPERROR){
+			  countERRORS++;
+			  if(countERRORS >= 20){
+				  countERRORS = 19;
+//				  lastTemp = DS18B20_ReadLastTemp();
+			  }
+			  lastTemp = DS18B20_ReadLastTemp();
+			PutHeaderOnTx(&txUSB, 0xF1, 16);
+			PutStrOnTx(&txUSB, "TERROR         ");
+			CalcAndPutCksOnTx(&txUSB);
+
+		  }
+		  if(w.i8[0] == DS18B20TEMPREADY){
+			  lastTemp = DS18B20_ReadLastTemp();
+			PutHeaderOnTx(&txUSB, 0xF1, 16);
+			PutStrOnTx(&txUSB, "TOK            ");
+			CalcAndPutCksOnTx(&txUSB);
+			  countERRORS = 0;
 		  }
 	  }
-
-	  /********************* DS18B20 *******************/
-/*
-	  Presence = DS18B20_Start ();
-	  HAL_Delay (1);
-	  DS18B20_Write (0xCC);  // skip ROM
-	  DS18B20_Write (0x44);  // convert t
-	  HAL_Delay (800);
-
-	  Presence = DS18B20_Start ();
-	  HAL_Delay(1);
-	  DS18B20_Write (0xCC);  // skip ROM
-	  DS18B20_Write (0xBE);  // Read Scratch-pad
-
-	  Temp_byte1 = DS18B20_Read();
-	  Temp_byte2 = DS18B20_Read();
-	  TEMP = (Temp_byte2<<8)|Temp_byte1;
-	  //Temperature = (float)TEMP/16;
-
-	  	PutHeaderOnTx(&txUSART, 0xA1, 3);
-		w.i16[0]=20;
-		PutByteOnTx(&txUSART, w.u8[0]);
-		PutByteOnTx(&txUSART, w.u8[1]);
-		CalcAndPutCksOnTx(&txUSART);
-
-		w.i16[0]=10;
-		PutHeaderOnTx(&txUSB, 0xA1, 3);
-		PutByteOnTx(&txUSB, w.u8[0]);
-		PutByteOnTx(&txUSB, w.u8[1]);
-		CalcAndPutCksOnTx(&txUSB);
-
-	  HAL_Delay(500);*/
   }
   /* USER CODE END 3 */
 }
@@ -959,6 +922,51 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 72-1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 65535;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
 
 }
 

@@ -108,8 +108,7 @@ private:
         GETFIRMWARE=0xF1,
         UNKNOWCMD=0xFF,
         DS18B20=0xA1,
-        GETSWITCHES=0x12,
-        GETANALOGSENSORS=0xA0,
+        ELAPSED=0x12,
         GETDATACONTROL=0xA2,
         SETDATACONTROL=0xA3,
         SETFREQ=0xA4,
@@ -154,6 +153,7 @@ private:
     float GYROMPU[3];
 
     float tempDS18B20;
+    int32_t elapsedtime;
 
     // Grafico del ACCEL
     QSplineSeries *accelXSpline;

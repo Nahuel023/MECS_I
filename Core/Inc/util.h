@@ -38,9 +38,9 @@
 #define IS1S		 		flag1.bit.b6			  //indica si pasaron 1s
 #define IS100MS		 		flag1.bit.b7			  //indica si pasaron 100ms
 
-#define IS50MS flag2.bit.b1							  //indica si pasaron 50ms
+#define IS2SEG flag2.bit.b1							  //indica si pasaron 50ms
 
-#define MICROSTOTICKS(micros)	((micros*(SysTick->LOAD+1))/1000)
+
 
 
 /* USER CODE END PM */
